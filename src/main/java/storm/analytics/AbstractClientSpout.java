@@ -19,6 +19,8 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
+import storm.analytics.utilities.NavigationEntry;
+
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -99,7 +101,7 @@ public abstract class AbstractClientSpout extends BaseRichSpout {
 			if(entry == null)
 				return;
 			
-			collector.emit(new Values(entry.userId, entry));
+			collector.emit(new Values(entry.getUserId(), entry));
 		} catch (InterruptedException e) {
 			log.error("Polling interrrupted", e);
 		}

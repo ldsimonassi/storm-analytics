@@ -1,4 +1,4 @@
-package storm.analytics;
+package storm.analytics.utilities;
 
 import java.io.Serializable;
 import java.util.Map;

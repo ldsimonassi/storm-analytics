@@ -1,4 +1,4 @@
-package storm.analytics;
+package storm.analytics.utilities;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -12,6 +12,7 @@ import org.apache.http.impl.conn.SingleClientConnManager;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+
 
 public class ItemsReader {
 	Logger log;

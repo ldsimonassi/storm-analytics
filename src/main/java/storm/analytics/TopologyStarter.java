@@ -18,7 +18,9 @@ public class TopologyStarter {
         conf.put("navigation_host", "localhost");
         conf.put("navigation_port", "8080");
         conf.put("items-api-host", "localhost:8888");
-
+        conf.put("item-categs-spool-dir", "./tmp/");
+        
+        
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("analytics", conf, builder.createTopology());
 	}
