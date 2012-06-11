@@ -37,6 +37,9 @@ public class GetCategoryBolt extends BaseBasicBolt {
 
 				// Call the items API to get item information
 				Product itm = reader.readItem(product);
+				if(itm ==null)
+					return ;
+
 				String categ = itm.getCategory();
 
 				collector.emit(new Values(entry.getUserId(), product, categ));

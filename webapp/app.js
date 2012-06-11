@@ -1,5 +1,5 @@
 
-/**
+/**;
  * Module dependencies.
  */
 
@@ -109,8 +109,6 @@ app.get('/product/:id', function(req, res) {
     }
 
 	client.get(id, function(err, reply) {
-		console.log("Redis returned response "+ reply + " err:" + err);
-
 		if(err!=null) {
 			res.render('redis_error.jade', {title: "Error reading from redis"+err});
 			return ;
@@ -122,10 +120,25 @@ app.get('/product/:id', function(req, res) {
 		}
 
 		var product = JSON.parse(reply);
-		console.log("Rendering page for product:" + product);
 		res.render('product.jade', product);
 	});
 
+});
+
+app.get('/stats/:id', function(req, resp) {
+	var id = req.params.id;
+	client.hgetall("prodcnt:"+id, function(err, res) {
+		if(err!=null)
+			resp.render('redis_error.jade', { title: "Error reading from redis:"+err});
+		else {
+			if(res!=null) {
+				var title = "Stats for product:"+id;
+				resp.render('stats.jade', {title: title, stats: res});
+			} else {
+				resp.render('not_found.jade', {title: "Producto not found"});
+			}
+		}
+	});
 });
 
 function get_all_data(fn) {
@@ -143,6 +156,21 @@ function get_all_data(fn) {
 		}
     });
 }
+
+app.post('/news', function(req, res) {
+	var body = "";
+	console.log("NEWS!!");
+
+	req.on('data', function (data) {
+		body += data;
+	});
+
+	req.on('end', function () {
+		console.log("NEWS!:"+ body);
+		res.send("OK");
+	});
+});
+
 
 app.get('/', function(req, res) {
 

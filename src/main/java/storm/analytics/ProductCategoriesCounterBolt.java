@@ -111,11 +111,8 @@ public class ProductCategoriesCounterBolt extends BaseRichBolt {
 	public void execute(Tuple input) {
 		String product = input.getString(0);
 		String categ = input.getString(1);
-		
-		System.out.println("***** Counting:"+product+ " categ:"+categ);
 		int total = count(product, categ);
 		System.out.println("Users that viewed prod "+product+ " viewed "+categ +" products "+total+" times");
-
 		collector.emit(new Values(product, categ, total));
 	}
 
