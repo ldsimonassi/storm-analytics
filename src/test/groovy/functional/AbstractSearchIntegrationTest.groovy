@@ -1,32 +1,35 @@
 package functional
 
+import redis.clients.jedis.Jedis;
 import storm.analytics.*;
 import backtype.storm.LocalCluster;
-import groovyx.net.http.ContentType;
-import groovyx.net.http.RESTClient
 import org.junit.Before
 import org.junit.After
 import org.junit.Assert
 
 
-public abstract class AbstractSearchIntegrationTest extends Assert {
-    def itemsApiClient
-    def searchEngineApiClient
-    def newsFeedApiClient
+public abstract class AbstractAnalyticsTest extends Assert {
 
 	// Storm data structures
 	def cluster
 	def topology
 	def conf
+	def jedis;
 
 	public static topologyStarted = false
 	public static sync= new Object()
 
+	private void reconnect() {
+		jedis = new Jedis(TopologyStarter.REDIS_HOST, TopologyStarter.REDIS_PORT);
+	}
+
 	@Before
 	public void startTopology(){
 		synchronized(sync){
-			populateItemsApi();
+			reconnect();
 			if(!topologyStarted){
+				jedis.flushAll();
+				populateItemsApi();
 				TopologyStarter.main(null);
 				topologyStarted = true;
 				Thread.sleep(1000);
@@ -35,65 +38,55 @@ public abstract class AbstractSearchIntegrationTest extends Assert {
 	}
 
 	public void populateItemsApi() {
-		addItem(1, "Funny Mp3 player", 200, "MP3")
-		addItem(2, "Large capacity Mp3 player", 200, "MP3")
-		addItem(3, "32Gb mp3 player", 200, "MP3")
+	    def testProducts = [
+	        [id: 0, title:"Dvd player with surround sound system", category:"Players", price: 100],
+	        [id: 1, title:"Full HD Bluray and DVD player", category:"Players", price:130],
+	        [id: 2, title:"Media player with USB 2.0 input", category:"Players", price:70],
 
-		addItem(4, "Mp3 battery", 200, "BATTERIES")
-		addItem(5, "Mp3 Battery with Charger", 200, "BATTERIES")
+	        [id: 3, title:"Full HD Camera", category:"Cameras", price:200],
+	        [id: 4, title:"Waterproof HD Camera", category:"Cameras", price:300],
+	        [id: 5, title:"ShockProof and Waterproof HD Camera", category:"Cameras", price:400],
+	        [id: 6, title:"Reflex Camera", category:"Cameras", price:500],
 
-		addItem(6, "LED Tv", 200, "TVS")
-		addItem(7, "LED Tv", 200, "TVS")
+	        [id: 7, title:"DualCore Android Smartphon with 64Gb SD card", category:"Phones", price:200],
+	        [id: 8, title:"Regular Movile Phone", category:"Phones", price:20],
+	        [id: 9, title:"Satellite phone", category:"Cameras", price:500],
 
-		addItem(8, "Portable Speakers", 200, "SPEAKERS")
-		addItem(9, "PC Speakers", 200, "SPEAKERS")
-		addItem(10, "USB Speakers", 200, "SPEAKERS")
+	        [id: 10, title:"64Gb SD Card", category:"Memory", price:35],
+	        [id: 11, title:"32Gb SD Card", category:"Memory", price:27],
+	        [id: 12, title:"16Gb SD Card", category:"Memory", price:5],
+
+	        [id: 13, title:"Pink smartphone cover", category:"Covers", price:20],
+	        [id: 14, title:"Black smartphone cover", category:"Covers", price:20],
+	        [id: 15, title:"Kids smartphone cover", category:"Covers", price:30],
+
+	        [id: 16, title:"55 Inches LED TV", category:"TVs", price:800],
+	        [id: 17, title:"50 Inches LED TV", category:"TVs", price:700],
+	        [id: 18, title:"42 Inches LED TV", category:"TVs", price:600],
+	        [id: 19, title:"32 Inches LED TV", category:"TVs", price:400],
+
+	        [id: 20, title:"TV Wall mount bracket 32-42 Inches", category:"Mounts", price:50],
+	        [id: 21, title:"TV Wall mount bracket 50-55 Inches", category:"Mounts", price:80]
+    	];
+
+		testProducts.each() { product ->
+			def val = "{ \"title\": \"${product.title}\" , \"category\": \"${product.category}\", \"price\": ${product.price}, \"id\": ${product.id} }"
+			println val
+			jedis.set(product.id.toString(), val.toString());
+		} 
 	}
 	
 
-	@Before
-    public void startRestClients() {
-        itemsApiClient        = new RESTClient('http://127.0.0.1:8888')
-		clearItems()
-    }
-    
-    
-    /**
-     * Integration testing helpers.
-     */
-	public void clearItems() {
-		def resp= itemsApiClient.delete(path : "/")
-		assertEquals(resp.status, 200)
+	public int getProductCategoryStats(String product, String categ) {
+		String count = jedis.hget("prodcnt:${product}", categ);
+		if(count == null || "nil".equals(count))
+			return 0;
+		return Integer.valueOf(count);
 	}
 
-	public void addItem(int id, String title, int price, String category) {
-		def document = "/${id}.json"
-		def toSend = [:]
-		toSend['id'] = id
-		toSend['title'] = title
-		toSend['price'] = price
-		toSend['category'] = category
-
-		println "Posting item [	${document}] [${toSend}]"
-        def resp= itemsApiClient.post(path : document,
-                                      body: toSend,
-                                      requestContentType: ContentType.JSON)
-        assertEquals(resp.status, 200)
-	}
-
-	public void removeItem(int id) {
-		def document = "/${id}.json"
-        def resp= itemsApiClient.delete(path : document)
-        assertEquals(resp.status, 200)
-	}
-
-
-	public Object readItem(int id) {
-		def document = "/${id}.json"
-		def resp = itemsApiClient.get(path:document)
-		assertEquals(200, resp.status)
-		assertEquals("${id}", "${resp.data.id}")
-
-		return resp.data
+	public void navigate(user, product) {
+		String nav= "{\"user\": \"${user}\", \"product\": \"${product}\", \"type\": \"PRODUCT\"}".toString();
+		println "Pushing navigation: ${nav}"
+		jedis.lpush('navigation', nav);
 	}
 }

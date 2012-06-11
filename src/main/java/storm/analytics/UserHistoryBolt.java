@@ -1,12 +1,11 @@
 package storm.analytics;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-
+import redis.clients.jedis.Jedis;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -16,78 +15,89 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
 public class UserHistoryBolt extends BaseRichBolt{
-	public static class UserHistory {
-		int userId;
-		HashSet<String> itemsNavigated;
-
-		public UserHistory(int userId){
-			this.userId = userId;
-			this.itemsNavigated = new HashSet<String>();
-		}
-		
-		public boolean itemWasPreviouslyNavigated(String itemId) {
-			return itemsNavigated.contains(itemId);
-		}
-		
-		public void addNavigatedItem(String itemId) {
-			itemsNavigated.add(itemId);
-		}
-
-		public Set<String> getItemsNavigated() {
-			return Collections.unmodifiableSet(itemsNavigated);
-		}
-	}
+	
 
 	private static final long serialVersionUID = 1L;
 	
-	HashMap<Integer, UserHistory> usersHistory;
 	OutputCollector collector;
+	String host;
+	int port;
+	Jedis jedis;
 	
 	@SuppressWarnings("rawtypes")
 	@Override
 	public void prepare(Map stormConf, TopologyContext context,
 			OutputCollector collector) {
-		this.usersHistory = new HashMap<Integer, UserHistory>();
 		this.collector = collector;
+		this.host = (String)stormConf.get("redis-host");
+		this.port = Integer.valueOf(stormConf.get("redis-port").toString());
+		reconnect();
 	}
 
+	public void reconnect() {
+		this.jedis = new Jedis(host, port);
+	}
+
+	HashMap<String, Set<String>> usersNavigatedItems = new HashMap<String, Set<String>>(); 
+	
+	
+	
 	@Override
 	public void execute(Tuple input) {
-		int userId = input.getInteger(1);
-		String itemId = input.getString(2);
-		String categId = input.getString(3);
-		UserHistory uh = getUserHistory(userId);
+		String user = input.getString(0);
+		String prod1 = input.getString(1);
+		String cat1 = input.getString(2);
 
+		// Product key will have category information embedded.
+		String prodKey = prod1+":"+cat1;
+		
+		Set<String> productsNavigated = getUserNavigationHistory(user);
+		
 		// If the user previously navigated this item -> ignore it
-		if(uh.itemWasPreviouslyNavigated(itemId)) {
-			return ;
-		}
-		else {
+		if(!productsNavigated.contains(prodKey)) {
+			
 			// Otherwise update related items
-			for (String otherItem : uh.getItemsNavigated()) {
-				// My item doesn't count!
-				if(itemId.equals(otherItem)) { 
-					break ;
-				}
-				else {
-					// Increment the category counter for the related item
-					collector.emit(new Values(itemId, categId));
-				}
+			for (String other : productsNavigated) {
+				String [] ot = other.split(":");
+				String prod2 = ot[0];
+				String cat2 = ot[1]; 
+				System.out.println("+1 : "+prod1+" "+cat2);
+				System.out.println("+1 : "+prod2+" "+cat1);
+				collector.emit(new Values(prod1, cat2));
+				collector.emit(new Values(prod2, cat1));
 			}
+			addProductToHistory(user, prodKey);
+
+		} else {
+			System.out.println("---> Product "+prod1+"has been already navigated by this user");
 		}
+		System.out.println("-----------");
 	}
 
-	private UserHistory getUserHistory(int userId) {
-		UserHistory uh = usersHistory.get(userId);
-		if(uh == null) {
-			uh = new UserHistory(userId);
-			usersHistory.put(userId, uh);
-		}
-		return uh;
+	private void addProductToHistory(String user, String product) {
+		Set<String> userHistory = getUserNavigationHistory(user);
+		userHistory.add(product);
+		jedis.sadd(buildKey(user), product);
 	}
+
+	private Set<String> getUserNavigationHistory(String user) {
+		Set<String> userHistory = usersNavigatedItems.get(user);
+		if(userHistory == null) {
+			userHistory = jedis.smembers(buildKey(user));
+			if(userHistory == null) 
+				userHistory = new HashSet<String>();
+			usersNavigatedItems.put(user, userHistory);
+		}
+		return userHistory;
+	}
+
+	private String buildKey(String user) {
+		return "history:"+user;
+	}
+
 
 	@Override
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
-		declarer.declare(new Fields("itemId", "categId"));
+		declarer.declare(new Fields("product", "categ"));
 	}
 }

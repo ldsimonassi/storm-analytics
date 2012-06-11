@@ -1,14 +1,19 @@
 package functional
 import org.junit.Test;
 
-class EnvironmentSetUpTest extends AbstractSearchIntegrationTest {
+class EnvironmentSetUpTest extends AbstractAnalyticsTest {
 	@Test
-	public void itemsApiExists(){
-		addItem(1, "new air conditioner with led indicator", 1500, "AIRCONDITION")
-		def resp = readItem(1)
+	public void testNoDuplication(){
+		navigate("1", "0"); // Players
+		navigate("1", "1"); // Players
+		navigate("1", "2"); // Players
+		navigate("1", "3"); // Cameras
+		Thread.sleep(5000); // Give two seconds for the system to process the data.
 
-		assertEquals(resp.id, 1)
-		assertEquals(resp.title, "new air conditioner with led indicator")
-		assertEquals(resp.price, 1500)
+		assertEquals 1, getProductCategoryStats("0", "Cameras")
+		assertEquals 1, getProductCategoryStats("1", "Cameras")
+		assertEquals 1, getProductCategoryStats("2", "Cameras")
+		assertEquals 2, getProductCategoryStats("0", "Players")
+		assertEquals 3, getProductCategoryStats("3", "Players")
 	}
 }

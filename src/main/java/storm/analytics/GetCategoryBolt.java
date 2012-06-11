@@ -2,8 +2,8 @@ package storm.analytics;
 
 import java.util.Map;
 
-import storm.analytics.utilities.Item;
-import storm.analytics.utilities.ItemsReader;
+import storm.analytics.utilities.Product;
+import storm.analytics.utilities.ProductsReader;
 import storm.analytics.utilities.NavigationEntry;
 
 import backtype.storm.task.TopologyContext;
@@ -14,41 +14,42 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
-import com.esotericsoftware.minlog.Log;
-
 public class GetCategoryBolt extends BaseBasicBolt {
 	private static final long serialVersionUID = 1L;
-	private ItemsReader reader;
+	private ProductsReader reader;
 	
 	@SuppressWarnings("rawtypes")
 	@Override
 	public void prepare(Map stormConf, TopologyContext context) {
-		String host = stormConf.get("items-api-host").toString();
-		this.reader = new ItemsReader(host); 
+		String host = stormConf.get("redis-host").toString();
+		int port = Integer.valueOf(stormConf.get("redis-port").toString());
+
+		this.reader = new ProductsReader(host, port); 
 		super.prepare(stormConf, context);
 	}
 	
 	@Override
 	public void execute(Tuple input, BasicOutputCollector collector) {
 		NavigationEntry entry = (NavigationEntry)input.getValue(1);
-		if("ITEM".equals(entry.getPageType())){
+		if("PRODUCT".equals(entry.getPageType())){
 			try {
-				String itemId = (String)entry.getOtherData().get("itemId");
+				String product = (String)entry.getOtherData().get("product");
 
 				// Call the items API to get item information
-				Item itm = reader.readItem(itemId);
+				Product itm = reader.readItem(product);
 				String categ = itm.getCategory();
 
-				collector.emit(new Values(entry.getUserId(), itemId, categ));
+				collector.emit(new Values(entry.getUserId(), product, categ));
 
 			} catch (Exception ex) {
-				Log.error("Error processing ITEM tuple", ex);
+				System.err.println("Error processing PRODUCT tuple"+ ex);
+				ex.printStackTrace();
 			}
 		}
 	}
 
 	@Override
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
-		declarer.declare(new Fields("userId","itemId", "categId"));
+		declarer.declare(new Fields("user","product", "categ"));
 	}
 }

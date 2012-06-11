@@ -1,7 +1,0 @@
-[
-{"userId":"129382", "pageType":"ITEM", "otherData":{"itemId":"12381"}},
-{"userId":"129382", "pageType":"SEARCH", "otherData":{"itemID":"dvd"}},
-{"userId":"129382", "pageType":"HOME"},
-{"userId":"129382", "pageType":"SOCIAL", "otherData":{"source":"facebook.com"}},
-{"userId":"129382", "pageType":"OTHER", "otherData":{"source":"google.com"}}
-]
