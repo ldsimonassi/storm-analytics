@@ -95,6 +95,22 @@ app.configure('production', function(){
   app.use(express.errorHandler());
 });
 
+app.get('/product/:id/stats', function(req, resp) {
+	var id = req.params.id;
+	client.hgetall("prodcnt:"+id, function(err, res) {
+		if(err!=null)
+			resp.render('redis_error.jade', { title: "Error reading from redis:"+err});
+		else {
+			if(res!=null) {
+				var title = "Stats for product:"+id;
+				resp.render('stats.jade', {title: title, stats: res});
+			} else {
+				resp.render('not_found.jade', {title: "No stats available vor this product"});
+			}
+		}
+	});
+});
+
 
 app.get('/product/:id', function(req, res) {
 	var id= req.params.id;
@@ -125,21 +141,6 @@ app.get('/product/:id', function(req, res) {
 
 });
 
-app.get('/stats/:id', function(req, resp) {
-	var id = req.params.id;
-	client.hgetall("prodcnt:"+id, function(err, res) {
-		if(err!=null)
-			resp.render('redis_error.jade', { title: "Error reading from redis:"+err});
-		else {
-			if(res!=null) {
-				var title = "Stats for product:"+id;
-				resp.render('stats.jade', {title: title, stats: res});
-			} else {
-				resp.render('not_found.jade', {title: "Producto not found"});
-			}
-		}
-	});
-});
 
 function get_all_data(fn) {
 	var products = {};

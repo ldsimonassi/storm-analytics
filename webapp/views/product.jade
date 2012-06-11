@@ -1,4 +1,6 @@
 h1 Product page for: #{title}
 p Category:#{category}
 p Price:#{price}
-img(width=10,height=100,src='/track/#{id}')
+a(href="/product/#{id}/stats")
+  'Related categories'
+p
