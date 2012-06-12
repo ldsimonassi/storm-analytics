@@ -1,43 +1,39 @@
 package functional
 
-import redis.clients.jedis.Jedis;
-import storm.analytics.*;
-import backtype.storm.LocalCluster;
+import redis.clients.jedis.Jedis
+import storm.analytics.*
+import backtype.storm.LocalCluster
 import org.junit.Before
 import org.junit.After
 import org.junit.Assert
 
 
 public abstract class AbstractAnalyticsTest extends Assert {
+	def jedis
 
-	// Storm data structures
-	def cluster
-	def topology
-	def conf
-	def jedis;
-
-	public static topologyStarted = false
-	public static sync= new Object()
+	static topologyStarted = false
+	static sync= new Object()
 
 	private void reconnect() {
-		jedis = new Jedis(TopologyStarter.REDIS_HOST, TopologyStarter.REDIS_PORT);
+		jedis = new Jedis(TopologyStarter.REDIS_HOST, TopologyStarter.REDIS_PORT)
 	}
 
 	@Before
 	public void startTopology(){
 		synchronized(sync){
-			reconnect();
+			reconnect()
 			if(!topologyStarted){
-				jedis.flushAll();
-				populateItemsApi();
-				TopologyStarter.main(null);
-				topologyStarted = true;
-				Thread.sleep(1000);
+				jedis.flushAll()
+				populateProducts()
+				TopologyStarter.testing = true
+				TopologyStarter.main(null)
+				topologyStarted = true
+				sleep 1000
 			}
 		}
 	}
 
-	public void populateItemsApi() {
+	public void populateProducts() {
 	    def testProducts = [
 	        [id: 0, title:"Dvd player with surround sound system", category:"Players", price: 100],
 	        [id: 1, title:"Full HD Bluray and DVD player", category:"Players", price:130],
@@ -67,26 +63,26 @@ public abstract class AbstractAnalyticsTest extends Assert {
 
 	        [id: 20, title:"TV Wall mount bracket 32-42 Inches", category:"Mounts", price:50],
 	        [id: 21, title:"TV Wall mount bracket 50-55 Inches", category:"Mounts", price:80]
-    	];
+    	]
 
 		testProducts.each() { product ->
 			def val = "{ \"title\": \"${product.title}\" , \"category\": \"${product.category}\", \"price\": ${product.price}, \"id\": ${product.id} }"
 			println val
-			jedis.set(product.id.toString(), val.toString());
+			jedis.set(product.id.toString(), val.toString())
 		} 
 	}
 	
 
 	public int getProductCategoryStats(String product, String categ) {
-		String count = jedis.hget("prodcnt:${product}", categ);
+		String count = jedis.hget("prodcnt:${product}", categ)
 		if(count == null || "nil".equals(count))
-			return 0;
-		return Integer.valueOf(count);
+			return 0
+		return Integer.valueOf(count)
 	}
 
 	public void navigate(user, product) {
-		String nav= "{\"user\": \"${user}\", \"product\": \"${product}\", \"type\": \"PRODUCT\"}".toString();
+		String nav= "{\"user\": \"${user}\", \"product\": \"${product}\", \"type\": \"PRODUCT\"}".toString()
 		println "Pushing navigation: ${nav}"
-		jedis.lpush('navigation', nav);
+		jedis.lpush('navigation', nav)
 	}
 }

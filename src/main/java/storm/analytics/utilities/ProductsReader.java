@@ -29,8 +29,11 @@ public class ProductsReader {
 		if(content == null  || ("nil".equals(content)))
 			return null;
         Object obj=JSONValue.parse(content);
-        JSONObject item=(JSONObject)obj;
-        Product i= new Product((Long)item.get("id"), (String)item.get("title"), (Long)item.get("price"), (String)item.get("category"));
+        JSONObject product=(JSONObject)obj;
+        Product i= new Product((Long)product.get("id"), 
+        					   (String)product.get("title"), 
+        					   (Long)product.get("price"), 
+        					   (String)product.get("category"));
         return i;
     }
 

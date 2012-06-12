@@ -19,7 +19,6 @@ import backtype.storm.tuple.Values;
 
 public class UsersNavigationSpout extends BaseRichSpout {
 	private static final long serialVersionUID = 1L;
-	String url;
 	Jedis jedis;
 	String host; 
 	int port;
@@ -45,7 +44,6 @@ public class UsersNavigationSpout extends BaseRichSpout {
 		if(content==null || "nil".equals(content)) {
 			try { Thread.sleep(300); } catch (InterruptedException e) {}
 		} else {
-			System.out.println("Nav recv: |" + content+"|");
 	        JSONObject obj=(JSONObject)JSONValue.parse(content);
 	        String user = obj.get("user").toString();
 	        String product = obj.get("product").toString();

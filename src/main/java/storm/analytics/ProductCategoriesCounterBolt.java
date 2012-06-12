@@ -28,6 +28,7 @@ public class ProductCategoriesCounterBolt extends BaseRichBolt {
 	OutputCollector collector;
 	String host;
 	int port;
+	long downloadTime;
 	
 	@SuppressWarnings("rawtypes")
 	@Override
@@ -35,6 +36,7 @@ public class ProductCategoriesCounterBolt extends BaseRichBolt {
 			OutputCollector collector) {
 		this.host = (String)stormConf.get("redis-host");
 		this.port = Integer.valueOf(stormConf.get("redis-port").toString());
+		this.downloadTime = Long.valueOf(stormConf.get("download-time").toString());
 		startDownloaderThread();
 		this.collector = collector;
 		reconnect();
@@ -82,7 +84,7 @@ public class ProductCategoriesCounterBolt extends BaseRichBolt {
 		return count;
 	}
 
-	// Start a thread in charge of downloading metrics to files.
+	// Start a thread in charge of downloading metrics to redis.
 	private void startDownloaderThread() {
 		TimerTask t = new TimerTask() {
 			@Override
@@ -98,13 +100,12 @@ public class ProductCategoriesCounterBolt extends BaseRichBolt {
 					String product = keys[0];
 					String categ = keys[1];
 					Integer count = pendings.get(key);
-					System.out.println("Counting p:"+product+" cat:"+categ + " setting:"+buildRedisKey(product));
 					jedis.hset(buildRedisKey(product), categ, count.toString());
 				}
 			}
 		};
 		timer = new Timer("Item categories downloader");
-		timer.scheduleAtFixedRate(t, 100, 100);
+		timer.scheduleAtFixedRate(t, downloadTime, downloadTime);
 	}
 
 	@Override
@@ -112,7 +113,6 @@ public class ProductCategoriesCounterBolt extends BaseRichBolt {
 		String product = input.getString(0);
 		String categ = input.getString(1);
 		int total = count(product, categ);
-		System.out.println("Users that viewed prod "+product+ " viewed "+categ +" products "+total+" times");
 		collector.emit(new Values(product, categ, total));
 	}
 

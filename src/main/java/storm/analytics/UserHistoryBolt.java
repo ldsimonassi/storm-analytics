@@ -61,17 +61,11 @@ public class UserHistoryBolt extends BaseRichBolt{
 				String [] ot = other.split(":");
 				String prod2 = ot[0];
 				String cat2 = ot[1]; 
-				System.out.println("+1 : "+prod1+" "+cat2);
-				System.out.println("+1 : "+prod2+" "+cat1);
 				collector.emit(new Values(prod1, cat2));
 				collector.emit(new Values(prod2, cat1));
 			}
 			addProductToHistory(user, prodKey);
-
-		} else {
-			System.out.println("---> Product "+prod1+"has been already navigated by this user");
 		}
-		System.out.println("-----------");
 	}
 
 	private void addProductToHistory(String user, String product) {

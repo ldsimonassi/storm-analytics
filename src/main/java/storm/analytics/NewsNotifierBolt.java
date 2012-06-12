@@ -1,11 +1,8 @@
 package storm.analytics;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -42,23 +39,16 @@ public class NewsNotifierBolt extends BaseRichBolt {
 		int visits = input.getInteger(2);
 
 		String content = "{ \"product\": \""+product+"\", \"categ\":\""+categ+"\", \"visits\":"+visits+" }";
-		System.out.println("Sending notification to webserver:"+webserver+" content:"+content);
+
 		HttpPost post = new HttpPost(webserver);
 		try {
 			post.setEntity(new StringEntity(content));
 			HttpResponse response = client.execute(post);
-			if(response.getStatusLine().getStatusCode()!=200)
-				System.err.println("Notification returned an error:"+response.getStatusLine().getStatusCode());
-			
 			org.apache.http.util.EntityUtils.consume(response.getEntity());
-			
-		} catch (UnsupportedEncodingException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
-		} catch (ClientProtocolException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+			reconnect();
+		} 
 	}
 
 	@Override
